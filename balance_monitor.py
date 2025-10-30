@@ -414,17 +414,21 @@ def calculate_daily_change(output_path: str):
                 # 计算今日余额
                 today_spot_total = 0
                 today_funding_total = 0
+                today_snapshot_ts = None
                 if not today_data.empty:
-                    today_spot_total = (today_data['spot_free'].sum() + today_data['spot_locked'].sum())
-                    today_funding_total = (today_data['funding_free'].sum() + today_data['funding_locked'].sum())
+                    today_snapshot = today_data.sort_values('timestamp').iloc[-1]
+                    today_spot_total = today_snapshot['spot_free'] + today_snapshot['spot_locked']
+                    today_funding_total = today_snapshot['funding_free'] + today_snapshot['funding_locked']
+                    today_snapshot_ts = today_snapshot['timestamp']
 
                 # 计算昨日余额
                 yesterday_spot_total = 0
                 yesterday_funding_total = 0
                 if not yesterday_data.empty:
-                    yesterday_spot_total = (yesterday_data['spot_free'].sum() + yesterday_data['spot_locked'].sum())
+                    yesterday_snapshot = yesterday_data.sort_values('timestamp').iloc[-1]
+                    yesterday_spot_total = yesterday_snapshot['spot_free'] + yesterday_snapshot['spot_locked']
                     yesterday_funding_total = (
-                                yesterday_data['funding_free'].sum() + yesterday_data['funding_locked'].sum())
+                        yesterday_snapshot['funding_free'] + yesterday_snapshot['funding_locked'])
 
                 spot_change = today_spot_total - yesterday_spot_total
                 funding_change = today_funding_total - yesterday_funding_total
@@ -441,8 +445,7 @@ def calculate_daily_change(output_path: str):
                         'spot_change': round(spot_change, 2 if asset != 'BNB' else 6),
                         'funding_change': round(funding_change, 2 if asset != 'BNB' else 6),
                         'total_change': round(total_change, 2 if asset != 'BNB' else 6),
-                        'timestamp': today_data['timestamp'].iloc[
-                            0] if not today_data.empty else datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                        'timestamp': today_snapshot_ts if today_snapshot_ts is not None else datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                     })
 
                 # 更新汇总数据
